@@ -140,7 +140,11 @@ def optimize(prob: WTAProblem, maxiters=100, ftol_abs = 1e-4, verbose=False):
         while (assignment_changed) and iters < maxiters:
             iters += 1
             try:
-                cycle = nx.find_negative_cycle(DG, 0)
+                if len(DG.nodes) == 0:
+                    # YIKES, this list is empty!!!
+                    print("UHOH!!!")
+                    break
+                cycle = nx.find_negative_cycle(DG, list(DG.nodes)[0])
                 #print(cycle)
                 assignment_changed = True
                 assignment = apply_cycle(assignment, cycle)

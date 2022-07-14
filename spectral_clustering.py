@@ -18,6 +18,7 @@ import heapq
 
 def weapon_affinity(prob: WTAProblem, i: int, j: int):
     return np.sum(prob.p[i,:]*prob.v*prob.p[j,:]) 
+    # return np.sum(prob.p[i,:]*prob.p[j,:]) 
 
 def weapon_adjacency(prob: WTAProblem):
     (n,m) = np.shape(prob.p)

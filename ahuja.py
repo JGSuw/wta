@@ -142,7 +142,8 @@ def optimize(prob: WTAProblem, maxiters=100, ftol_abs = 1e-4, verbose=False):
             try:
                 if len(DG.nodes) == 0:
                     # YIKES, this list is empty!!!
-                    print("UHOH!!!")
+                    print("GRAPH IS EMPTY DURING ASSIGNMENT UPDATE!!")
+                    meta_assignment_changed = False
                     break
                 cycle = nx.find_negative_cycle(DG, list(DG.nodes)[0])
                 #print(cycle)

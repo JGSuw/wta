@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import networkx as nx
 from os.path import exists
-from simple_wta import WTAProblem, clb_mmr_alg
+from simple_wta import WTAProblem, clb_mmr_alg, greedy
 
 def generate_random_assignment(p_survive, V):
     targets, weapons = p_survive.shape
@@ -97,20 +97,16 @@ def count_weapons(assignment):
         w += len(assignment[j])
     return w
 
-def optimize(prob: WTAProblem, maxiters=100, ftol_abs = 1e-4, verbose=False):
+def optimize_from_initial(prob: WTAProblem, initial_assignment, maxiters=100, ftol_abs = 1e-6, verbose=False):
     p_survive = (1 - prob.p).T
     v = prob.v.reshape((len(prob.v),1))
-    weap_assignment = clb_mmr_alg(prob)
-
-    assignment = [np.where(weap_assignment == i)[0] for i in range(len(v))]
+    assignment = [np.where(initial_assignment==i)[0] for i in range(len(prob.v))]
 
     ev_per_target, ev = evaluate_solution(p_survive, v, assignment)
     last_ev = ev
     if verbose:
         print("Initial: %.4f" % ev)
 
-    #for target_set in assignment:
-    #    print(target_set)
     meta_assignment_changed = True
     iters = 1
     while (meta_assignment_changed) and iters < maxiters:
@@ -125,17 +121,15 @@ def optimize(prob: WTAProblem, maxiters=100, ftol_abs = 1e-4, verbose=False):
             if verbose:
                 print("Updated: %.4f" % ev)
             if abs(ev-last_ev) < ftol_abs:
+                # print("ftol_abs not met.")
+                last_ev = ev
                 break
             last_ev = ev
-        
-        #for target_set in assignment:
-        #    print(target_set)
 
         if i > 1:
             meta_assignment_changed = True
         DG = make_graph(p_survive, assignment, ev_per_target)
 
-        #print(nx.find_negative_cycle(DG, 0))
         assignment_changed = True
         while (assignment_changed) and iters < maxiters:
             iters += 1
@@ -151,6 +145,8 @@ def optimize(prob: WTAProblem, maxiters=100, ftol_abs = 1e-4, verbose=False):
                 assignment = apply_cycle(assignment, cycle)
                 ev_per_target, ev = evaluate_solution(p_survive, v, assignment)
                 if abs(ev-last_ev) < ftol_abs:
+                    last_ev = ev
+                    # print("ftol_abs not met.")
                     break
                 last_ev = ev
                 DG = make_graph(p_survive, assignment, ev_per_target)
@@ -170,5 +166,13 @@ def optimize(prob: WTAProblem, maxiters=100, ftol_abs = 1e-4, verbose=False):
     for j in range(len(prob.v)):
         for w in assignment[j]:
             weapon_assignment[w] = j
-    
+    if iters == maxiters:
+        print("Ended at maximum iterations")    
     return weapon_assignment
+
+def optimize(prob: WTAProblem, maxiters=100, ftol_abs = 1e-6, verbose=False):
+    # assignment = clb_mmr_alg(prob)
+    assignment = greedy(prob)
+    return optimize_from_initial(prob, assignment, maxiters=maxiters, ftol_abs=ftol_abs,verbose=verbose)
+ 
+

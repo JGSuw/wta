@@ -1,4 +1,5 @@
 import numpy as np
+import heapq
 
 """
 A basic WTA problem. Depending on the action space, can represent different
@@ -20,6 +21,12 @@ class WTAProblem:
             q[x[i]] = q[x[i]]*(1-self.p[i,x[i]])
         return np.sum(self.v*q)
 
+    def max_objective(self, x: np.array):
+        q = np.ones(np.shape(self.p)[1])
+        for i in range(len(x)):
+            q[x[i]] = q[x[i]]*(1-self.p[i,x[i]])
+        return np.sum(self.v*(1-q))
+
     # WTA objective function for mixed strategies, where x is a matrix whose rows
     # are probability density functions corresponding the the weapon's mixed strategies.
     def mixed_objective(self, x: np.matrix):
@@ -30,6 +37,9 @@ class WTAProblem:
         (n,m) = np.shape(self.p)
         profile = np.array([np.random.choice(m,p=x[i,:]) for i in range(n)])
         return self.objective(profile)
+
+    def copy(self):
+        return WTAProblem(self.v.copy(),self.p.copy())
 
 # wonderful life utility for the WTA problem 
 def wlu(prob: WTAProblem, i: int, xi: int, xmi: np.array):
@@ -53,13 +63,16 @@ def mixed_wlu(prob: WTAProblem, i: int, xi: np.ndarray, xmi: np.matrix):
     return u2 - u1
 
 
-def random_wta_factory(n,m):
-    v = np.array(range(2,9),dtype=np.float64)
-    pk = np.zeros(9)
-    pk[1:] = np.linspace(start=.2,stop=.9,num=8)
-    pdf = .85/8*np.ones(9)
-    pdf[0] = .15
-    return WTAProblem(np.random.choice(v,size=(m,)),np.random.choice(pk,size=(n,m),p=pdf))
+# def random_wta_factory(n,m,rng=np.random):
+#     v = np.array(range(1,9),dtype=np.float64)
+#     pk = np.zeros(9)
+#     pk[1:] = np.linspace(start=.2,stop=.9,num=8)
+#     pdf = .9/8*np.ones(9)
+#     pdf[0] = .1
+#     return WTAProblem(rng.choice(v,size=(m,)),rng.choice(pk,size=(n,m),p=pdf))
+
+def random_wta_factory(n,m,rng=np.random):
+    return WTAProblem(rng.uniform(low=0.1, high=1.0,size=(m,)),rng.uniform(low=0.1,high=0.9,size=(n,m)))
 
 
 # the convex relaxation of the WTA objective used in Kat Hendrick's paper
@@ -96,4 +109,27 @@ def clb_mmr_alg(problem: WTAProblem):
         heapq.heappush(nodes,(value,j))
     return x
 
-    
+def partial_assignment_utility(problem: WTAProblem, x: np.array):
+    n_w,n_t = problem.p.shape
+    u = np.zeros((n_w,n_t))
+    for i in range(n_w):
+        for j in range(n_t):
+            q = np.prod([1-problem.p[k,j] for k in range(n_w) if (k!=i and x[k]==j)])
+            u[i,j] = problem.v[j]*q*problem.p[i,j]
+    return u
+
+def greedy(problem: WTAProblem):
+    n_w, n_t = problem.p.shape
+    x = n_t*np.zeros(n_w,int)
+    u = problem.p*problem.v 
+    for _ in range(n_w):
+        i,j = np.unravel_index(np.argmax(u),u.shape)
+        x[i] = j
+        for l in range(n_w):
+            q = np.prod([1-problem.p[l,j] for k in range(n_w) if (k!=l and x[k]==j)])
+            u[l,j] = problem.v[j]*q*problem.p[l,j]
+        u[i,:] = -1*np.ones(n_t)
+    return x
+
+        
+        

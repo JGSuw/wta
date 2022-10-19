@@ -3,6 +3,7 @@ import numpy as np
 from simple_wta import WTAProblem, random_wta_factory
 from sklearn.cluster import KMeans 
 import heapq
+from math import floor
 
 # hacking on some spectral clustering ideas
 # key idea is to apply spectral clustering based on affinity data.
@@ -99,4 +100,21 @@ def reduce_problem(prob: WTAProblem, n_clusters: int, rng=np.random):
             i+=1
 
     problems = [WTAProblem(prob.v[missions[i]],(prob.p[coalitions[i],:])[:,missions[i]]) for i in range(len(coalitions))]
+    return problems, coalitions, missions
+
+def random_reduction(prob: WTAProblem, n_clusters: int, rng=np.random):
+    (n,m) = prob.p.shape
+    div = floor(n/n_clusters)
+    weapon_labels = np.array([])
+    for i in range(div):
+        weapon_labels = np.append(weapon_labels,rng.choice(n_clusters,size=n_clusters,replace=False))
+    weapon_labels = np.append(weapon_labels,rng.choice(n_clusters,size=n%n_clusters,replace=False))
+    div = floor(m/n_clusters)
+    target_labels = np.array([])
+    for i in range(div):
+        target_labels = np.append(target_labels,rng.choice(n_clusters,size=n_clusters,replace=False))
+    target_labels = np.append(target_labels,rng.choice(n_clusters,size=m%n_clusters,replace=False))
+    coalitions = [np.where(weapon_labels==i)[0] for i in range(n_clusters)]
+    missions = [np.where(target_labels==i)[0] for i in range(n_clusters)]
+    problems = [WTAProblem(prob.v[missions[i]],(prob.p[coalitions[i],:])[:,missions[i]]) for i in range(n_clusters)]
     return problems, coalitions, missions

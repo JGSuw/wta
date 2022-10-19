@@ -173,6 +173,12 @@ def optimize_from_initial(prob: WTAProblem, initial_assignment, maxiters=100, ft
 def optimize(prob: WTAProblem, maxiters=100, ftol_abs = 1e-6, verbose=False):
     # assignment = clb_mmr_alg(prob)
     assignment = greedy(prob)
+    # (n,m) = prob.p.shape
+    # assignment = np.zeros(n,dtype=int)
+    # for i in range(n):
+    #     u = prob.q_init*prob.v*prob.p[i,:]
+    #     pdf = u/np.sum(u)
+    #     assignment[i] = np.random.choice(m,p=pdf)
     return optimize_from_initial(prob, assignment, maxiters=maxiters, ftol_abs=ftol_abs,verbose=verbose)
  
 
